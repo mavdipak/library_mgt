@@ -1,0 +1,121 @@
+syntax = "proto3";
+
+package library;
+
+// Members
+message Member {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message ListMembersRequest {}
+message ListMembersResponse {
+  repeated Member members = 1;
+}
+
+// Books
+message Book {
+  int32 id = 1;
+  string title = 2;
+  string author = 3;
+  bool available = 4;
+}
+
+message ListBooksRequest {}
+message ListBooksResponse {
+  repeated Book books = 1;
+}
+
+// Loans
+message Loan {
+  int32 id = 1;
+  int32 member_id = 2;
+  int32 book_id = 3;
+  string borrow_date = 4;
+  string due_date = 5;
+  string return_date = 6;
+}
+
+message BorrowBookRequest {
+  int32 member_id = 1;
+  int32 book_id = 2;
+}
+message BorrowBookResponse {
+  int32 loan_id = 1;
+  string borrow_date = 2;
+  string due_date = 3;
+}
+
+message ReturnBookRequest {
+  int32 loan_id = 1;
+}
+message ReturnBookResponse {
+  int32 loan_id = 1;
+  int32 fine = 2;
+}
+
+message ListLoansRequest {
+  int32 member_id = 1;
+}
+message ListLoansResponse {
+  repeated Loan loans = 1;
+}
+
+// Fines
+message Fine {
+  int32 id = 1;
+  int32 member_id = 2;
+  int32 loan_id = 3;
+  int32 amount = 4;
+  bool paid = 5;
+}
+message ListFinesRequest {
+  int32 member_id = 1;
+}
+message ListFinesResponse {
+  repeated Fine fines = 1;
+}
+message PayFineRequest {
+  int32 member_id = 1;
+}
+message PayFineResponse {
+  bool success = 1;
+  int32 total_paid = 2;
+}
+
+// Overdue
+message ListOverdueBooksRequest {}
+message ListOverdueBooksResponse {
+  repeated Loan overdue_loans = 1;
+}
+
+message CreateMemberRequest {
+  string name = 1;
+  string email = 2;
+}
+
+message CreateMemberResponse {
+  int32 id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+
+service LibraryService {
+  rpc ListMembers(ListMembersRequest) returns (ListMembersResponse);
+  rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
+
+  rpc BorrowBook(BorrowBookRequest) returns (BorrowBookResponse);
+  rpc ReturnBook(ReturnBookRequest) returns (ReturnBookResponse);
+  rpc ListLoans(ListLoansRequest) returns (ListLoansResponse);
+
+  rpc ListFines(ListFinesRequest) returns (ListFinesResponse);
+  rpc PayFine(PayFineRequest) returns (PayFineResponse);
+
+  rpc ListOverdueBooks(ListOverdueBooksRequest) returns (ListOverdueBooksResponse);
+
+  rpc CreateMember(CreateMemberRequest) returns (CreateMemberResponse);
+}
+
+

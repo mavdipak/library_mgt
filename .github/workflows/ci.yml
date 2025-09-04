@@ -1,0 +1,67 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: libadmin
+          POSTGRES_PASSWORD: libpass
+          POSTGRES_DB: librarydb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U libadmin -d librarydb"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r server/requirements.txt
+          pip install pytest
+
+      - name: Run unit tests
+        run: pytest server/tests
+
+      - name: Start backend + gateway
+        run: |
+          docker compose up --build -d server gateway
+          sleep 15
+
+      - name: Run e2e script
+        run: ./tests/e2e.sh
+
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build & Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            your-dockerhub-user/library-server:latest
+            your-dockerhub-user/library-gateway:latest
+            your-dockerhub-user/library-frontend:latest

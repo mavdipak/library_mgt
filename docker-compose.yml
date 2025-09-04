@@ -1,0 +1,65 @@
+version: "3.8"
+
+networks:
+  app-net:
+
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: ${DB_USER:-libadmin}
+      POSTGRES_PASSWORD: ${DB_PASS:-libpass}
+      POSTGRES_DB: ${DB_NAME:-librarydb}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks: [app-net]
+
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-librarydb}
+      DB_USER: ${DB_USER:-libadmin}
+      DB_PASS: ${DB_PASS:-libpass}
+      LOAN_DAYS: ${LOAN_DAYS:-14}
+      FINE_PER_DAY: ${FINE_PER_DAY:-5}
+    depends_on:
+      - db
+    ports:
+      - "${GRPC_PORT:-50051}:50051"
+    networks: [app-net]
+
+  gateway:
+    build:
+      context: .
+      dockerfile: ./gateway/Dockerfile
+    environment:
+      PORT: ${GATEWAY_PORT:-8080}
+      GRPC_TARGET: server:${GRPC_PORT:-50051}
+      PROTO_PATH: /app/proto/library.proto
+    depends_on:
+      - server
+    ports:
+      - "${GATEWAY_PORT:-8080}:8080"
+    networks: [app-net]
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+      args:
+        REACT_APP_API_BASE: ${API_BASE:-http://gateway:8080}
+    depends_on:
+      - gateway
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    networks: [app-net]
+
+volumes:
+  db_data:
